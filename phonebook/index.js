@@ -5,6 +5,8 @@ const morgan = require('morgan')
 //Makes posting in json occur
 app.use(express.json())
 
+app.use(express.static('build'))
+
 app.use(morgan(function (tokens, req, res) {
 
     method = tokens.method(req, res)
@@ -130,7 +132,7 @@ app.post('/api/persons', (request, response) => {
     //Send back response with new person added
     response.json(persons)
 })
-const PORT = 3001
+const PORT = process.env.PORT || 3001
 
 app.listen(PORT , () => {
     console.log(`Server running on ${PORT}`)
