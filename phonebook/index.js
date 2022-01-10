@@ -1,9 +1,15 @@
+require('dotenv').config()
 const express = require('express')
 const app = express()
 const morgan = require('morgan')
+const cors = require('cors')
+
+const Person = require('./models/mongo')
+const { Mongoose } = require('mongoose')
 
 //Makes posting in json occur
 app.use(express.json())
+app.use(cors())
 
 app.use(express.static('build'))
 
@@ -35,55 +41,21 @@ app.use(morgan(function (tokens, req, res) {
     }
 }))
 
-
-let persons = [
-    { 
-        id: 1,
-        name: "Arto Hellas", 
-        number: "040-123456"
-      },
-      { 
-        id: 2,
-        name: "Ada Lovelace", 
-        number: "39-44-5323523"
-      },
-      { 
-        id: 3,
-        name: "Dan Abramov", 
-        number: "12-43-234345"
-      },
-      {
-        id: 4,
-        name: "Mary Poppendieck", 
-        number: "39-23-6423122"
-      }
-]
-
-const generateId = () => {
-    return (Math.floor(Math.random() * 10000))
-}
-
-
 app.get('/', (request, response) => {
     response.send('<h1>Hello World!</h1>')
   })
   
-  app.get('/api/persons', (request, response) => {
-    response.json(persons)
+app.get('/api/persons', (request, response) => {
+    Person.find({}).then(persons => {
+        response.json(persons)
+    })
   })
 
 app.get ('/api/persons/:id', (request, response) => {
     //Request.params.id specifies id, and as it comes in as string, converts to number
-    const id = Number(request.params.id)
-    const person = persons.find(p => p.id === id)
-
-    if (person){
+    Person.findById(request.params.id).then(person => {
         response.json(person)
-    }
-
-    else{
-        response.status(404).end(`Person with id ${id} doesn't exist`)
-    }
+    })
 })  
 
 app.delete('/api/persons/:id', (request, response) => {
@@ -105,34 +77,26 @@ app.post('/api/persons', (request, response) => {
     //Works because of app.use(express.json())
     const body = request.body
 
-    if (!body.name || !body.number) {
-        return response.status(404).json({
-            error: 'name or number missing'
-        })
+    console.log(body)
+
+    if (body.number === undefined || body.name === undefined){
+        return response.status(400).json({error: "content missing"})
     }
 
-    const check_name = persons.find(p => p.name === body.name)
-
-    if(check_name){
-        return response.status(404).json({
-            error: 'name must be unique'
-        })
-    }
-
-    const person = {
-        id: generateId(),
+    //Make post requests go right to MongoDB
+    const person = new Person({
         name: body.name,
         number: body.number
-    }
+    })
 
-    
+    //Saving the person I just made using the mongoose model to the DB
+    person.save().then(savedPerson => {
+        response.json(savedPerson)
+    })
 
-    persons = persons.concat(person)
-
-    //Send back response with new person added
-    response.json(persons)
 })
-const PORT = process.env.PORT || 3001
+
+const PORT = process.env.PORT
 
 app.listen(PORT , () => {
     console.log(`Server running on ${PORT}`)
