@@ -2,17 +2,27 @@ const mongoose = require('mongoose')
 
 const url = process.env.MONGODB_URI
 
-mongoose.connect(url).then(result => {
-    console.log("connected to MongoDB")
+const uniqueValidator = require('mongoose-unique-validator')
+
+mongoose.connect(url).then(() => {
+    console.log('connected to MongoDB')
 })
-.catch(error => {
-    console.log("error connecting to MongoDB", error.message)
-})
+    .catch(error => {
+        console.log('error connecting to MongoDB', error.message)
+    })
 
 
 const phonebookSchema = new mongoose.Schema ({
-    name: String,
-    number: String
+    //Used to check for unique names
+    name: {
+        type: String,
+        unique: true,
+        minLength: [3, 'name must be at least 3 characters']
+    },
+    number: {
+        type: String,
+        minLength: [8, 'Phone number must be at least 8 characters']
+    }
 })
 
 phonebookSchema.set('toJSON', {
@@ -22,6 +32,8 @@ phonebookSchema.set('toJSON', {
         delete returnedObject.__v
     }
 })
+
+phonebookSchema.plugin(uniqueValidator)
 
 module.exports = mongoose.model('Person', phonebookSchema)
 
